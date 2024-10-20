@@ -276,6 +276,7 @@ url_entry.grid(row=5, column=0, padx=(200,50), pady=10,sticky='nsew')
 path_label.grid(row=6, column=0, padx=(0,390), pady=10, sticky='e')
 direc.grid(row=7, column=0, padx=(200,50), pady=10,sticky='nsew')
 
+
 # 显示/隐藏密码的功能
 def show_password():
     if password_entry.cget("show") == "*":
