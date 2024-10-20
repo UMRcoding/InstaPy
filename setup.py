@@ -90,7 +90,7 @@ setup(
         "Natural Language :: English",
     ],
     install_requires=dependencies,
-    extras_require={"test": ["tox", "virtualenv", "tox-venv"]},
+    extras_require={"test01": ["tox", "virtualenv", "tox-venv"]},
     python_requires=">=3.5",
     platforms=["win32", "linux", "linux2", "darwin"],
     zip_safe=False,

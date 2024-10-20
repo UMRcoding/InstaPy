@@ -539,7 +539,7 @@ def get_links_for_username(
 
 
 def get_media_edge_comment_string(media):
-    """AB test (Issue 3712) alters the string for media edge, this resolves it"""
+    """AB test01 (Issue 3712) alters the string for media edge, this resolves it"""
     options = ["edge_media_to_comment", "edge_media_preview_comment"]
     for option in options:
         try:

@@ -9,14 +9,14 @@ Use `headless_browser` parameter to run the bot via the CLI. Works great if runn
 **Warning:** Some users discourage the use of this feature as Instagram could [detect](https://antoinevastel.com/bot%20detection/2017/08/05/detect-chrome-headless.html) this headless mode!
 
 ```python
-session = InstaPy(username='test', password='test', headless_browser=True)
+session = InstaPy(username='test01', password='test01', headless_browser=True)
 ```
 
 **(Alternative)**
 If the web driver you're using doesn't support headless mode (or the headless mode becomes very detectable), you can use the `nogui` parameter which displays the window out of view. Keep in mind, this parameter lacks support and ease of use, only supporting Linux based operating systems (or those that have Xvfb, Xephyr and Xvnc display software).
 
 ```python
-session = InstaPy(username='test', password='test', nogui=True)
+session = InstaPy(username='test01', password='test01', nogui=True)
 ```
 
 ### Bypass Suspicious Login Attempt

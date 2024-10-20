@@ -338,14 +338,14 @@ def login_user(
             By.XPATH, read_xpath(login_user.__name__, "login_elem")
         )
     except NoSuchElementException:
-        logger.warning("Login A/B test detected! Trying another string...")
+        logger.warning("Login A/B test01 detected! Trying another string...")
         try:
             login_elem = browser.find_element(
                 By.XPATH,
                 read_xpath(login_user.__name__, "login_elem_no_such_exception"),
             )
         except NoSuchElementException:
-            logger.warning("Could not pass the login A/B test. Trying last string...")
+            logger.warning("Could not pass the login A/B test01. Trying last string...")
             try:
                 login_elem = browser.find_element(
                     By.XPATH,
@@ -354,7 +354,7 @@ def login_user(
             except NoSuchElementException as e:
                 # NF: start
                 logger.exception(
-                    "Login A/B test failed!\n\t{}".format(str(e).encode("utf-8"))
+                    "Login A/B test01 failed!\n\t{}".format(str(e).encode("utf-8"))
                 )
                 return False
                 # NF: end
