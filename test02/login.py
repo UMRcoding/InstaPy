@@ -101,7 +101,7 @@ def InstaScrap(username, password, url, TOTP_code):
         # 每隔一段时间检查一次
         time.sleep(5)
 
-    driver.quit()
+    # driver.quit()
 
     # # 获取初始页面高度
     # initial_height = driver.execute_script("return document.body.scrollHeight")
@@ -254,7 +254,6 @@ def InstaScrap(username, password, url, TOTP_code):
     # print(f"已下载 {len(all_urls)} 个文件到 {download_dir}")
 
 
-
 username = "ethan1020304@gmail.com"
 password = "GAg+pEAjBzjCG"
 profile_url = "https://www.instagram.com/williamhanson/"
@@ -262,8 +261,6 @@ profile_url = "https://www.instagram.com/williamhanson/"
 # download_directory = r"C:\Users\EthanJobs\Desktop\InstaPy\test02\install"
 secret_key = "U3CEHS4LAPNSVE2ZIW7H3YJYJ6QDCKBP"
 
-
 TOTP_code = get_totp_token(secret_key)
 InstaScrap(username, password, profile_url, TOTP_code)
-
 

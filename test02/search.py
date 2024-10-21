@@ -1,7 +1,6 @@
 import pickle
 import time
-
-import requests
+from regex import regex
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
@@ -37,61 +36,38 @@ if __name__ == '__main__':
     driver.refresh()
     time.sleep(5)
 
-    # 检查是否成功跳过登录
-    yurl = driver.current_url
-    if yurl == "https://www.instagram.com/":
-        print("使用保存的会话信息，已成功登录。")
-    else:
+    # 获取页面源代码，提取必要信息
+    re = driver.page_source
+    if "无法正常运作" in re:
         print("未能成功使用会话信息，请重新登录。")
+    if "为你推荐" in re:
+        print("使用保存的会话信息，已成功登录。")
 
-    time.sleep(20)
+    if not all(keyword in re for keyword in ["\"username\"", "\"appId\"", "\"claim\"", "\"id\":"]):
+        time.sleep(4)
+        re = driver.page_source
 
-    # 获取Selenium的Cookies并转换为requests格式
-    selenium_cookies = driver.get_cookies()
-    requests_cookies = convert_cookies_to_dict(selenium_cookies)
+    try:
+        # 构建 Cookie 字符串
+        cookies = driver.get_cookies()
+        strcookie = "".join(f"{cookie['name']}={cookie['value']};" for cookie in cookies)
+        print(strcookie)
 
-    payload = {
-        'av': '17841456931372276',
-        '__d': 'www',
-        '__user': '0',
-        '__a': '1',
-        '__req': '13',
-        '__hs': '20016.HYP:instagram_web_pkg.2.1..0.1',
-        'dpr': '1',
-        '__ccg': 'MODERATE',
-        # '__rev': '1017504446',
-        # '__s': 'oqsfga:dx2zxx:ext69q',
-        # '__hsi': '7427833527145263373',
-        # '__dyn': '7xeUjG1mxu1syUbFp41twpUnwgU7SbzEdF8aUco2qwJxS0k24o1DU2_CwjE1xoswaq0yE462mcw5Mx62G5UswoEcE7O2l0Fwqo31w9a9wtUd8-U2zxe2GewGw9a361qw8Xxm16wUwtEvwww4WCwLyESE7i3vwDwHg2ZwrUdUbGwmk0zU8oC1Iwqo5q3e3zhA6bwIxe6V89F8uwm9EO6UaU3cG8yohw',
-        # '__csr': 'h4cgrNsBgD5jdNcOBaDkihikBHfdJfcVtkKVaF_Q_rGHKbGhqUKQp7h9ujBAFeiVay9paim9_jCRAGqya5XzHG4eZ6hby8ryqKbh9eUb9pebWUVbVlUgD89gKblpkuivBGaF28gAzkby4E4-i00jF66C17GGwJwik1rw6km08Owdsgbzm542u787twxwd6060U0C21eCzk08Cw8B7jxaub5o1lpE5W4RG316Vkawm0zO7AhEPjh40E9m2-2u64qt2J90I83iywhES6E4m0MqwZzogCy88p7gedwmo4C0gB3ov2oCzxgl81Yw0MZw0iVE0nnw',
-        # '__comet_req': '7',
-        'fb_dtsg': 'NAcPn9M8mMLxEG7UFMILgE8ok-n094z8PPXgI82VibCXK7aq7hFw0PQ:17843691127146670:1729427253',
-        'jazoest': '25914',
-        'lsd': 'rpTu4BHOBC4VjK_EbHRtld',
-        '__spin_r': '1017504446',
-        '__spin_b': 'trunk',
-        '__spin_t': '1729427261',
-        'fb_api_caller_class': 'RelayModern',
-        'fb_api_req_friendly_name': 'PolarisSearchBoxRefetchableQuery',
-        'variables': '{"data":{"context":"blended","include_reel":"true","query":"11","rank_token":"","search_surface":"web_top_search"},"hasQuery":true}',
-        # 'server_timestamps': 'true',
-        'doc_id': '9153895011291216'
-    }
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
-        'Content-Type': 'application/x-www-form-urlencoded'
-    }
-    url = 'https://www.instagram.com/graphql/query'
-    response = requests.post(url, data=payload, headers=headers, cookies=requests_cookies)
+        # 解析页面源代码，提取用户信息
+        user_info = {}
+        if any(keyword in re for keyword in ["\"username\"", "\"appId\"", "\"claim\"", "\"id\":"]):
+            user_info['username'] = regex.search('"username":"(.*?)"', re).group(1)
+            user_info['appId'] = regex.search('"X-IG-App-ID":"(.*?)"', re).group(1)
+            user_info['id'] = regex.search('"id":"(.*?)"', re).group(1)
+            user_info['claim'] = regex.search('"claim":"(.*?)"', re).group(1)
+            print(user_info)
 
-    # 检查响应状态码
-    if response.status_code == 200:
-        print("请求成功")
-        print(response)
-    else:
-        print(f"请求失败，状态码: {response.status_code}")
-        print(response)  # 输出详细的错误信息
+    except Exception as e:
+        print(f"error: {e}")
+    finally:
+        # driver.quit()
+        print("结束")
 
-    # driver.quit()
-
-
+# rur="EAG\05469799464176\0541760971045:01f72c4323bcd704e9413750dbc6059347b4cdb7a95db9c2550bc48247c6f3beb926bfc5";wd=1536x776;ig_nrcb=1;ds_user_id=69799464176;dpr=1.25;ig_did=29ECDE4B-5657-4319-A0DE-F4A364C2C4FA;ig_did=4E03EA67-F917-4FA1-B730-451CF8053485;csrftoken=jHy6QAAo9xkwynzh62Tt5DAj6jJqkdb3;datr=JhUVZ97CSukjFQfbPFCMT6yu;dpr=1.25;csrftoken=jHy6QAAo9xkwynzh62Tt5DAj6jJqkdb3;rur="EAG\05469799464176\0541760970992:01f7084c60d36284cee92b8a9321e7ca1fdfeec9280660c02589b2ad869c5bbd529da513";wd=1036x751;datr=mhUVZ_ALNj-LbsLZ8zdN7nfd;mid=ZxUVKAALAAFH3Y_1OuWDJshOscCH;ds_user_id=69799464176;mid=ZxUVmgALAAFmUsEzr5m4ddIG27_s;sessionid=69799464176%3A5ZvDyrw9t472na%3A22%3AAYcUo2vxfFNX0WejnwhIzKXnWYJ2g74XdFYdOpKsow;
+# {'username': 'ethanjobs537', 'appId': '936619743392459', 'id': '69799464176', 'claim': 'hmac.AR2b5ZuB99ubN2-syrJEh-yeVYq4GcwAJ69RhxyLGePEH789'}
+# 结束
