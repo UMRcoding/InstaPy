@@ -12,5 +12,5 @@ session = InstaPy(
 want_check_browser=False,
 with smart_run(session):
     session.set_dont_include(["friend1", "friend2", "friend3"])
-
     session.like_by_tags(["natgeo"], amount=10)
+

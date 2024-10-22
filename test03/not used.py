@@ -1,107 +1,23 @@
-import pickle
-
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
-import time
-import requests
-from bs4 import BeautifulSoup
-import re
-import json
-import os
-from urllib.parse import urlparse
-import pyotp
-import pickle
-from typing import BinaryIO
-
-def get_totp_token(secret_key):
-    totp = pyotp.TOTP(secret_key)
-    print(f"当前的 2FA 验证码是: {totp.now()}")
-    return totp.now()
-
-def InstaScrap(username, password, url, TOTP_code):
-    # 设置Chrome选项
-    options = Options()
-    # 设置代理服务器
-    # host = "210.12.28.122"
-    # port = "8120"
-
-    # options.add_argument(f'--proxy-server=http://{host}:{port}')
-    options.add_argument('--no-sandbox') # 禁用沙盒模式, 解决权限问题
-    options.add_argument('--disable-dev-shm-usage') # 禁用共享文件, 避免共享内存空间不足
-    # options.add_argument('--headless') # 启用无头模式
-    options.add_experimental_option('excludeSwitches', ['enable-automation']) # 去掉自动化控制的提示，避免反爬机制的检测
-    options.add_experimental_option('useAutomationExtension', False) # 禁用Chrome的自动化扩展，进一步减少网站检测到自动化控制的机会
-
-    # 初始化Chrome WebDriver
-    driver = webdriver.Chrome(options=options)
-    driver.maximize_window()
-
-    # 打开 Instagram 登录页面
-    driver.get("https://www.instagram.com/accounts/login/")
+def scrape_profile_data(driver, profile_url):
+    """抓取 Instagram 个人主页数据"""
+    driver.get(profile_url)
     time.sleep(5)
 
-    # 找到用户名和密码输入框
-    username_field = driver.find_element(By.NAME, "username")
-    password_field = driver.find_element(By.NAME, "password")
-    username_field.send_keys(username)
-    time.sleep(2)
-    password_field.send_keys(password)
+    soups = []
+    initial_height = driver.execute_script("return document.body.scrollHeight")
 
-    # 点击登录按钮
-    login_button = driver.find_element(By.XPATH, "//button[@type='submit']")
-    time.sleep(10)
-    login_button.click()
-    time.sleep(10)
-
-    # 使用 JavaScript 打开一个新标签页
-    # driver.execute_script("window.open()")
-
-    # 切换到新标签页
-    # new_tab = driver.window_handles[-1]
-    # driver.switch_to.window(new_tab)
-    # time.sleep(10)
-
-    # 理论上登录成功，立刻进入提供的 url
-    # driver.get(url)
-
-    # 获取当前窗口句柄
-    # s_handle = driver.current_window_handle
-
-    # 开始轮询
+    # 循环滚动页面
     while True:
-        yurl = driver.current_url
-        # 如果有挑战，开始两分钟的计时并持续轮询
-        if "challenge" in yurl:
-            start_time = time.time()
-            while time.time() - start_time < 120:  # 两分钟的倒计时
-                yurl = driver.current_url
-                if "challenge" in yurl:
-                    # 如果仍然是挑战页面，打印剩余时间
-                    remaining_time = 120 - int(time.time() - start_time)
-                    print(f"账号短期风控，请在两分钟内完成挑战验证，剩余时间: {remaining_time}秒")
-                else:
-                    # 如果挑战完成，且已成功跳转，退出挑战循环
-                    break
-                time.sleep(1)
-
-        # 如果登录成功
-        if yurl == "https://www.instagram.com/":
-            print("登录成功！")
-            # 保存会话信息到文件
-            cookies = driver.get_cookies()
-            with open('session.pkl', 'wb') as file:
-                pickle.dump(cookies, file)
-            print("会话信息已保存到 session.pkl 文件中。")
-            break
-        # 每隔一段时间检查一次
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(5)
+        html = driver.page_source
+        soups.append(BeautifulSoup(html, 'html.parser'))
+        current_height = driver.execute_script("return document.body.scrollHeight")
+        if current_height == initial_height:
+            break
+        initial_height = current_height
 
-    # driver.quit()
+    return soups
 
     # # 获取初始页面高度
     # initial_height = driver.execute_script("return document.body.scrollHeight")
@@ -253,14 +169,29 @@ def InstaScrap(username, password, url, TOTP_code):
     #
     # print(f"已下载 {len(all_urls)} 个文件到 {download_dir}")
 
+def extract_post_urls(soups):
+    """从解析的 HTML 中提取帖子 URL"""
+    post_urls = []
+    for soup in soups:
+        elements = soup.find_all('a', class_="x1i10hfl xjbqb8w x1ejq31n xd10rxx ...")
+        post_urls.extend([element['href'] for element in elements if element['href'].startswith(("/p/", "/reel/"))])
+    unique_post_urls = list(set(post_urls))
+    return unique_post_urls
 
-username = "ethan1020304@gmail.com"
-password = "GAg+pEAjBzjCG"
-profile_url = "https://www.instagram.com/williamhanson/"
-# "https://www.instagram.com/yifei_cc/"
-# download_directory = r"C:\Users\EthanJobs\Desktop\InstaPy\test02\install"
-secret_key = "U3CEHS4LAPNSVE2ZIW7H3YJYJ6QDCKBP"
-
-TOTP_code = get_totp_token(secret_key)
-InstaScrap(username, password, profile_url, TOTP_code)
+def fetch_json_data(driver, post_urls):
+    """获取 Instagram 帖子对应的 JSON 数据"""
+    query_parameters = "__a=1&__d=dis"
+    json_list = []
+    for url in post_urls:
+        try:
+            modified_url = "https://www.instagram.com/" + url + "?" + query_parameters
+            driver.get(modified_url)
+            time.sleep(5)
+            WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.XPATH, '//pre')))
+            pre_tag = driver.find_element(By.XPATH, '//pre')
+            json_parsed = json.loads(pre_tag.text)
+            json_list.append(json_parsed)
+        except (NoSuchElementException, TimeoutException, json.JSONDecodeError) as e:
+            print(f"处理 URL {url} 时发生错误: {e}")
+    return json_list
 
