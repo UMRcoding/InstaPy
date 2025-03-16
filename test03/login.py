@@ -5,7 +5,7 @@ import time
 import re
 import pyotp
 import pickle
-
+import json
 
 def get_totp_token(secret_key):
     """生成当前的 2FA 验证码"""
@@ -30,47 +30,33 @@ def setup_driver():
     return driver
 
 
-def handle_login_challenges(driver):
+def handle_login_challenges(driver, twofa_key):
     print("处理登录时的挑战页面或两步验证!")
-    while True:
-        current_url = driver.current_url
-        if "challenge" in current_url:
-            # 处理挑战验证
-            handle_challenge(driver)
-        elif "two_factor" in current_url:
-            # 处理两步验证
-            secret_key = "TNOAM3UVSORCWVZQXPXNA7SEEZVMZBPZ"
-            totp_code = get_totp_token(secret_key)
-            fill_two_factor_code(driver, totp_code)
-            page_source = driver.page_source
-            if re.search("不再有效", page_source):
-                print("验证码不再有效，请重新申请。")
-        else:
-            print("登录成功！")
-            save_session(driver)
-            break
+    # current_url = driver.current_url
+    # if "challenge" in current_url:
+    #     handle_challenge(driver)
+
+    totp_code = get_totp_token(twofa_key)
+    fill_two_factor_code(driver, totp_code)
+
+    page_source = driver.page_source
+    if re.search("不再有效", page_source):
+        print("验证码不再有效，请重新申请。")
+    else:
+        print("登录成功！")
+        save_session(driver)
 
 
 def save_session(driver):
-    print("保存当前会话到本地文件!")
     cookies = driver.get_cookies()
-    with open('session.pkl', 'wb') as file:
-        pickle.dump(cookies, file)
-    print("会话信息已保存到 session.pkl 文件中。")
 
-# 使用 JavaScript 打开一个新标签页
-# driver.execute_script("window.open()")
+    # key=value
+    cookie_string = "; ".join([f"{cookie['name']}={cookie['value']}" for cookie in cookies])
+    print(f"Cookie: {cookie_string}")
 
-# 切换到新标签页
-# new_tab = driver.window_handles[-1]
-# driver.switch_to.window(new_tab)
-# time.sleep(10)
-
-# 理论上登录成功，立刻进入提供的 url
-# driver.get(url)
-
-# 获取当前窗口句柄
-# s_handle = driver.current_window_handle
+    with open('cookies.txt', 'w', encoding='utf-8') as file:
+        file.write(cookie_string)
+    print("会话信息已保存到 cookies.txt 文件中。")
 
 
 def handle_challenge(driver):
@@ -87,7 +73,6 @@ def handle_challenge(driver):
 
 # https://www.instagram.com/accounts/login/two_factor?next=%2F
 def fill_two_factor_code(driver, totp_code):
-    print("填写两步验证的验证码并提交！")
     verification_code_field = driver.find_element(By.NAME, "verificationCode")
     time.sleep(1)
     # 填写验证码并点击确认按钮
@@ -97,10 +82,10 @@ def fill_two_factor_code(driver, totp_code):
     # 点击确认按钮
     confirm_button = driver.find_element(By.XPATH, "//button[@type='button' and contains(text(),'确认')]")
     confirm_button.click()
-    time.sleep(10)
+    time.sleep(6)
 
-def login_instagram(driver, username, password):
-    print("登录 Instagram 并处理挑战或两步验证!")
+def login_instagram(driver, username, password, twofa_key):
+    print("登录 Instagram")
     driver.get("https://www.instagram.com/accounts/login/")
     time.sleep(6)
 
@@ -108,24 +93,26 @@ def login_instagram(driver, username, password):
     username_field = driver.find_element(By.NAME, "username")
     password_field = driver.find_element(By.NAME, "password")
     username_field.send_keys(username)
-    time.sleep(2)
+    time.sleep(1)
     password_field.send_keys(password)
 
     login_button = driver.find_element(By.XPATH, "//button[@type='submit']")
     time.sleep(1)
     login_button.click()
-    time.sleep(10)
+    time.sleep(6)
 
     page_source = driver.page_source
     if re.search("密码有误", page_source):
         print("请检查用户名或密码是否正确")
         return
-    handle_login_challenges(driver)
+    handle_login_challenges(driver, twofa_key)
 
 if __name__ == '__main__':
-    username = "meetitjobs"
-    password = "N3Uwh5r8f9uy"
+    username = "xi8454774"
+    password = "bmLjw0x5_gsd"
+    twofa_key = "L56MK747VUF7IFOMJ3RQXAWRTCQVMICD"
+
     driver = setup_driver()
-    login_instagram(driver, username, password)
+    login_instagram(driver, username, password, twofa_key)
 
 
